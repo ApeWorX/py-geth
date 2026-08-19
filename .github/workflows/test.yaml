@@ -47,7 +47,8 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Install geth
-      uses: ApeWorX/geth-action@v1
+      # uses: ApeWorX/geth-action@v1
+      uses: ApeWorX/geth-action@a8157542ebc8f31de8eaa7f60e2304fe32cb4bc3
 
     - name: Run tests
       run: uv run --group test pytest tests

@@ -30,6 +30,9 @@ def kill_proc(proc: subprocess.Popen[AnyStr]) -> None:
             try:
                 proc.send_signal(signal.SIGINT)
                 wait_for_popen(proc, 30)
+            except ValueError:
+                # Windows does not support sending SIGINT to a subprocess.
+                pass
             except KeyboardInterrupt:
                 print(
                     "Trying to close geth process.  Press Ctrl+C 2 more times "

@@ -69,6 +69,9 @@ def construct_test_chain_kwargs(
     **overrides: Unpack[GethKwargsTypedDict],
 ) -> GethKwargsTypedDict:
     validate_geth_kwargs(overrides)
+    if sys.platform == "win32":
+        overrides.setdefault("ipc_disable", True)
+
     overrides.setdefault("dev_mode", True)
     overrides.setdefault("password", DEFAULT_PASSWORD_PATH)
     overrides.setdefault("no_discover", True)
@@ -95,7 +98,7 @@ def construct_test_chain_kwargs(
     else:
         overrides.setdefault("rpc_port", get_open_port())
 
-    if "ipc_path" not in overrides:
+    if not overrides.get("ipc_disable") and "ipc_path" not in overrides:
         # try to use a `geth.ipc` within the provided data_dir if the path is
         # short enough.
         if overrides.get("data_dir") is not None:
@@ -147,7 +150,9 @@ def construct_popen_command(**geth_kwargs: Unpack[GethKwargsTypedDict]) -> list[
 
     builder = CommandBuilder()
 
-    if gk.nice and is_nice_available():
+    # Git for Windows provides a nice.exe wrapper, but terminating that wrapper
+    # does not reliably terminate its geth child process.
+    if not sys.platform.startswith("win") and gk.nice and is_nice_available():
         builder.extend(("nice", "-n", "20"))
 
     builder.append(gk.geth_executable)

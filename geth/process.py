@@ -10,19 +10,15 @@ import copy
 import json
 import logging
 import os
+import socket
 import subprocess
+import sys
 import time
 from types import (
     TracebackType,
 )
 from typing import (
     cast,
-)
-from urllib.error import (
-    URLError,
-)
-from urllib.request import (
-    urlopen,
 )
 
 import semantic_version
@@ -45,6 +41,7 @@ from geth.chain import (
     is_sepolia_chain,
 )
 from geth.exceptions import (
+    PyGethGethError,
     PyGethNotImplementedError,
     PyGethValueError,
 )
@@ -164,8 +161,11 @@ class BaseGethProcess(ABC):
     @property
     def is_rpc_ready(self) -> bool:
         try:
-            urlopen(f"http://{self.rpc_host}:{self.rpc_port}")
-        except URLError:
+            with socket.create_connection(
+                (self.rpc_host, int(self.rpc_port)), timeout=0.1
+            ):
+                pass
+        except OSError:
             return False
         else:
             return True
@@ -176,6 +176,13 @@ class BaseGethProcess(ABC):
 
         with Timeout(timeout) as _timeout:
             while True:
+                return_code = self.proc.poll()
+                if return_code is not None:
+                    raise PyGethGethError(
+                        command=self.command,
+                        return_code=return_code,
+                        message="Geth exited before the RPC interface became available",
+                    )
                 if self.is_rpc_ready:
                     break
                 time.sleep(0.1)
@@ -232,6 +239,9 @@ class MainnetGethProcess(BaseGethProcess):
                 "You cannot specify `data_dir` for a MainnetGethProcess"
             )
 
+        if sys.platform == "win32":
+            geth_kwargs.setdefault("ipc_disable", True)
+
         super().__init__(geth_kwargs)
 
     @property
@@ -252,6 +262,9 @@ class SepoliaGethProcess(BaseGethProcess):
             raise PyGethValueError(
                 f"You cannot specify `network_id` for a {type(self).__name__}"
             )
+
+        if sys.platform == "win32":
+            geth_kwargs.setdefault("ipc_disable", True)
 
         geth_kwargs["network_id"] = "11155111"
         geth_kwargs["data_dir"] = get_sepolia_data_dir()

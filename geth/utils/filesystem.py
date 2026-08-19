@@ -31,21 +31,7 @@ def remove_dir_if_exists(path: str) -> bool:
 
 
 def is_executable_available(program: str) -> bool:
-    def is_exe(fpath: str) -> bool:
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath = os.path.dirname(program)
-    if fpath:
-        if is_exe(program):
-            return True
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return True
-
-    return False
+    return shutil.which(program) is not None
 
 
 def is_same_path(p1: str, p2: str) -> bool:

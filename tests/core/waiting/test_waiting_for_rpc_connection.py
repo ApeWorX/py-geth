@@ -6,6 +6,9 @@ from flaky import (
 from geth import (
     DevGethProcess,
 )
+from geth.exceptions import (
+    PyGethGethError,
+)
 from geth.utils.timeout import (
     Timeout,
 )
@@ -22,3 +25,15 @@ def test_timeout_waiting_for_rpc_connection(base_dir):
     with DevGethProcess("testing", base_dir=base_dir) as geth:
         with pytest.raises(Timeout):
             geth.wait_for_rpc(timeout=0.1)
+
+
+def test_waiting_for_rpc_fails_when_geth_exits(monkeypatch, base_dir):
+    geth = DevGethProcess("testing", base_dir=base_dir)
+    geth.start()
+    geth.proc.terminate()
+    geth.proc.wait()
+
+    with pytest.raises(PyGethGethError, match="exited before the RPC"):
+        geth.wait_for_rpc(timeout=20)
+
+    geth.stop()

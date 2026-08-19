@@ -56,7 +56,6 @@ def get_live_data_dir() -> str:
     elif sys.platform == "win32":
         data_dir = os.path.expanduser(
             os.path.join(
-                "\\",
                 "~",
                 "AppData",
                 "Roaming",

@@ -38,8 +38,9 @@ class PyGethException(Exception):
         self,
         *args: Any,
         user_message: str | None = None,
+        **kwargs: Any,
     ):
-        super().__init__(*args)
+        super().__init__(*args, **kwargs)
 
         # Assign properties of PyGethException
         self.user_message = user_message
@@ -79,13 +80,16 @@ class GethError(Exception):
         ).strip()
 
 
+# TODO: In the next breaking release, make GethError inherit directly from
+# PyGethException and remove PyGethGethError, which is retained for backward
+# compatibility until then.
 class PyGethGethError(PyGethException, GethError):
     def __init__(
         self,
         *args: Any,
         **kwargs: Any,
     ):
-        GethError.__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class PyGethAttributeError(PyGethException, AttributeError):

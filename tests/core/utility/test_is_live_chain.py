@@ -22,8 +22,14 @@ def test_is_live_chain(monkeypatch, platform, data_dir, should_be_live):
         monkeypatch.setattr("os.path.sep", "\\")
 
     expanded_data_dir = os.path.expanduser(data_dir)
-    relative_data_dir = os.path.relpath(expanded_data_dir)
 
     assert is_live_chain(data_dir) is should_be_live
     assert is_live_chain(expanded_data_dir) is should_be_live
-    assert is_live_chain(relative_data_dir) is should_be_live
+
+    try:
+        relative_data_dir = os.path.relpath(expanded_data_dir)
+    except ValueError:
+        # Windows cannot construct relative paths across drives.
+        pass
+    else:
+        assert is_live_chain(relative_data_dir) is should_be_live

@@ -34,7 +34,9 @@ from geth.utils.filesystem import (
     is_executable_available,
 )
 from geth.utils.networking import (
+    get_open_p2p_port,
     get_open_port,
+    is_p2p_port_open,
     is_port_open,
 )
 from geth.utils.validation import (
@@ -82,14 +84,16 @@ def construct_test_chain_kwargs(
         if port is not None
     }
 
-    def allocate_port(default: int) -> str:
+    def allocate_port(default: int, *, p2p: bool = False) -> str:
+        is_available = is_p2p_port_open if p2p else is_port_open
+        get_available = get_open_p2p_port if p2p else get_open_port
         default_port = str(default)
-        if default_port not in allocated_ports and is_port_open(default):
+        if default_port not in allocated_ports and is_available(default):
             port = default_port
         else:
-            port = get_open_port()
+            port = get_available()
             while port in allocated_ports:
-                port = get_open_port()
+                port = get_available()
 
         allocated_ports.add(port)
         return port
@@ -101,7 +105,7 @@ def construct_test_chain_kwargs(
     overrides.setdefault("network_id", "1234")
 
     if "port" not in overrides:
-        overrides["port"] = allocate_port(30303)
+        overrides["port"] = allocate_port(30303, p2p=True)
 
     overrides.setdefault("ws_enabled", True)
     overrides.setdefault("ws_api", ALL_APIS)

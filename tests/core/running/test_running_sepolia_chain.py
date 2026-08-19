@@ -5,6 +5,7 @@ from geth.mixins import (
     LoggingMixin,
 )
 from geth.utils.networking import (
+    get_open_p2p_port,
     get_open_port,
 )
 
@@ -16,7 +17,7 @@ class LoggedSepoliaGethProcess(LoggingMixin, SepoliaGethProcess):
 def test_testnet_chain_with_no_overrides():
     geth = LoggedSepoliaGethProcess(
         geth_kwargs={
-            "port": get_open_port(),
+            "port": get_open_p2p_port(),
             "rpc_enabled": True,
             "rpc_port": get_open_port(),
         }

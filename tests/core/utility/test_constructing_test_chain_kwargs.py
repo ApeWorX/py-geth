@@ -52,7 +52,13 @@ def test_windows_test_chains_disable_ipc(monkeypatch, tmp_path):
 
 
 def test_generated_ports_are_unique(monkeypatch):
-    generated_ports = iter(("40000", "40000", "40001", "40001", "40002"))
+    generated_ports = iter(("40000", "40001", "40001", "40002"))
+    generated_p2p_ports = []
+    monkeypatch.setattr("geth.wrapper.is_p2p_port_open", lambda port: False)
+    monkeypatch.setattr(
+        "geth.wrapper.get_open_p2p_port",
+        lambda: generated_p2p_ports.append("40000") or "40000",
+    )
     monkeypatch.setattr("geth.wrapper.is_port_open", lambda port: False)
     monkeypatch.setattr("geth.wrapper.get_open_port", lambda: next(generated_ports))
 
@@ -63,3 +69,4 @@ def test_generated_ports_are_unique(monkeypatch):
         chain_kwargs["ws_port"],
         chain_kwargs["rpc_port"],
     } == {"40000", "40001", "40002"}
+    assert generated_p2p_ports == ["40000"]

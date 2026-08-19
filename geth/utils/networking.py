@@ -34,6 +34,49 @@ def get_open_port() -> str:
     return str(port)
 
 
+def _get_p2p_bind_address() -> tuple[socket.AddressFamily, tuple[str, int]]:
+    if socket.has_ipv6:
+        return socket.AF_INET6, ("::", 0)
+
+    return socket.AF_INET, ("0.0.0.0", 0)
+
+
+def is_p2p_port_open(port: int) -> bool:
+    family, bind_address = _get_p2p_bind_address()
+    bind_address = (bind_address[0], port)
+    tcp_sock = socket.socket(family, socket.SOCK_STREAM)
+    udp_sock = socket.socket(family, socket.SOCK_DGRAM)
+    try:
+        udp_sock.bind(bind_address)
+        tcp_sock.bind(bind_address)
+    except OSError:
+        return False
+    else:
+        return True
+    finally:
+        tcp_sock.close()
+        udp_sock.close()
+
+
+def get_open_p2p_port() -> str:
+    family, bind_address = _get_p2p_bind_address()
+
+    while True:
+        udp_sock = socket.socket(family, socket.SOCK_DGRAM)
+        tcp_sock = socket.socket(family, socket.SOCK_STREAM)
+        try:
+            udp_sock.bind(bind_address)
+            port = udp_sock.getsockname()[1]
+            tcp_sock.bind((bind_address[0], port))
+        except OSError:
+            continue
+        else:
+            return str(port)
+        finally:
+            tcp_sock.close()
+            udp_sock.close()
+
+
 @contextlib.contextmanager
 def get_ipc_socket(
     ipc_path: str, timeout: float = 0.1

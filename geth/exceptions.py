@@ -10,7 +10,7 @@ from typing import (
 
 
 def force_text_maybe(value: bytes | bytearray | str | None) -> str | None:
-    if isinstance(value, (bytes, bytearray)):
+    if isinstance(value, bytes | bytearray):
         return codecs.decode(value, "utf8")
     elif isinstance(value, str) or value is None:
         return value

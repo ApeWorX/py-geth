@@ -1,7 +1,7 @@
 # py-geth
 
 [![Join the conversation on Discord](https://img.shields.io/discord/809793915578089484?color=blue&label=chat&logo=discord&logoColor=white)](https://discord.gg/GHryRvPB84)
-[![Build Status](https://circleci.com/gh/ethereum/py-geth.svg?style=shield)](https://circleci.com/gh/ethereum/py-geth)
+[![Tests](https://github.com/ApeWorX/py-geth/actions/workflows/test.yaml/badge.svg)](https://github.com/ApeWorX/py-geth/actions/workflows/test.yaml)
 [![PyPI version](https://badge.fury.io/py/py-geth.svg)](https://badge.fury.io/py/py-geth)
 [![Python versions](https://img.shields.io/pypi/pyversions/py-geth.svg)](https://pypi.python.org/pypi/py-geth)
 
@@ -29,7 +29,7 @@ To run geth connected to the mainnet
 >>> geth.start()
 ```
 
-Or in dev mode for testing.  These require you to give them a name.
+Or in dev mode for testing. These require you to give them a name.
 
 ```python
 >>> from geth import DevGethProcess
@@ -38,7 +38,7 @@ Or in dev mode for testing.  These require you to give them a name.
 ```
 
 By default the `DevGethProcess` sets up test chains in the default `datadir`
-used by `geth`.  If you would like to change the location for these test
+used by `geth`. If you would like to change the location for these test
 chains, you can specify an alternative `base_dir`.
 
 ```python
@@ -82,7 +82,7 @@ True
 ```
 
 When testing it can be nice to see the logging output produced by the `geth`
-process.  `py-geth` provides a mixin class that can be used to log the stdout
+process. `py-geth` provides a mixin class that can be used to log the stdout
 and stderr output to a logfile.
 
 ```python
@@ -112,7 +112,7 @@ True
 > This feature is experimental and subject to breaking changes.
 
 Versions of `geth` dating back to v1.14.0 can be installed using `py-geth`.
-See [install.py](https://github.com/ethereum/py-geth/blob/main/geth/install.py) for
+See [install.py](https://github.com/ApeWorX/py-geth/blob/main/geth/install.py) for
 the current list of supported versions.
 
 Installation can be done via the command line:
@@ -129,7 +129,7 @@ Or from python using the `install_geth` function.
 ```
 
 The installed binary can be found in the `$HOME/.py-geth` directory, under your
-home directory.  The `v1.17.2` binary would be located at
+home directory. The `v1.17.2` binary would be located at
 `$HOME/.py-geth/geth-v1.17.2/bin/geth`.
 
 ## About `DevGethProcess`
@@ -152,13 +152,13 @@ In that regard, it is preconfigured as follows.
 Clone the repository:
 
 ```shell
-$ git clone git@github.com:ethereum/py-geth.git
+$ git clone git@github.com:ApeWorX/py-geth.git
 ```
 
 Next, run the following from the newly-created `py-geth` directory:
 
 ```sh
-$ python -m pip install -e ".[dev]"
+$ uv sync
 ```
 
 ### Running the tests
@@ -179,46 +179,28 @@ for information on how we do:
 - Pull Requests
 - Documentation
 
-We use [pre-commit](https://pre-commit.com/) to maintain consistent code style. Once
+We use [prek](https://prek.j178.dev) to maintain consistent code style. Once
 installed, it will run automatically with every commit. You can also run it manually
-with `make lint`. If you need to make a commit that skips the `pre-commit` checks, you
+with `uv run prek run --all-files`. If you need to make a commit that skips the `prek` checks, you
 can do so with `git commit --no-verify`.
 
 ### Development Environment Setup
 
-You can set up your dev environment with:
+You can set up your dev environment with the `dev` dependency group, which is
+installed by default when you run `uv sync`.
 
 ```sh
-git clone git@github.com:ethereum/py-geth.git
+git clone git@github.com:ApeWorX/py-geth.git
 cd py-geth
-virtualenv -p python3 venv
-. venv/bin/activate
-python -m pip install -e ".[dev]"
-pre-commit install
+uv sync
+uv run prek install
 ```
 
 ### Release setup
 
-To release a new version:
-
-```sh
-make release bump=$$VERSION_PART_TO_BUMP$$
-```
-
-#### How to bumpversion
-
-The version format for this repo is `{major}.{minor}.{patch}` for stable, and
-`{major}.{minor}.{patch}-{stage}.{devnum}` for unstable (`stage` can be alpha or beta).
-
-To issue the next version in line, specify which part to bump,
-like `make release bump=minor` or `make release bump=devnum`. This is typically done from the
-main branch, except when releasing a beta (in which case the beta is released from main,
-and the previous stable branch is released from said branch).
-
-If you are in a beta version, `make release bump=stage` will switch to a stable.
-
-To issue an unstable version when the current version is stable, specify the
-new version explicitly, like `make release bump="--new-version 4.0.0-alpha.1 devnum"`
+Releases are published from GitHub Releases. The release tag is the canonical
+version source, `setuptools-scm` derives the package version from that tag, and
+the release workflow publishes to PyPI through trusted publishing.
 
 ## Adding Support For New Geth Versions
 

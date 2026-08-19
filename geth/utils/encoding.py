@@ -13,7 +13,7 @@ from geth.exceptions import (
 
 
 def is_string(value: Any) -> bool:
-    return isinstance(value, (bytes, bytearray, str))
+    return isinstance(value, bytes | bytearray | str)
 
 
 def force_bytes(value: bytes | bytearray | str, encoding: str = "iso-8859-1") -> bytes:
@@ -23,7 +23,7 @@ def force_bytes(value: bytes | bytearray | str, encoding: str = "iso-8859-1") ->
         return bytes(value)
     elif isinstance(value, str):
         encoded = codecs.encode(value, encoding)
-        if isinstance(encoded, (bytes, bytearray)):
+        if isinstance(encoded, bytes | bytearray):
             return encoded
         else:
             raise PyGethTypeError(
@@ -36,7 +36,7 @@ def force_bytes(value: bytes | bytearray | str, encoding: str = "iso-8859-1") ->
 
 
 def force_text(value: bytes | bytearray | str, encoding: str = "iso-8859-1") -> str:
-    if isinstance(value, (bytes, bytearray)):
+    if isinstance(value, bytes | bytearray):
         return codecs.decode(value, encoding)
     elif isinstance(value, str):
         return value
@@ -52,7 +52,7 @@ def force_obj_to_text(obj: Any) -> Any:
         return force_text(obj)
     elif isinstance(obj, dict):
         return {force_obj_to_text(k): force_obj_to_text(v) for k, v in obj.items()}
-    elif isinstance(obj, (list, tuple)):
+    elif isinstance(obj, list | tuple):
         return type(obj)(force_obj_to_text(v) for v in obj)
     else:
         return obj

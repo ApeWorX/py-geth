@@ -50,6 +50,9 @@ docs/*.internal.rst
 docs/*.utils.rst
 docs/*._utils.*
 
+# uv
+uv.lock
+
 # Blockchain
 chains
 

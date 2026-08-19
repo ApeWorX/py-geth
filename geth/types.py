@@ -7,10 +7,9 @@ from typing import (
     Any,
     Literal,
     TypedDict,
-    Union,
 )
 
-IO_Any = Union[IO[Any], int, None]
+IO_Any = IO[Any] | int | None
 
 
 class GethKwargsTypedDict(TypedDict, total=False):

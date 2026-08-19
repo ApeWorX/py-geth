@@ -1,0 +1,80 @@
+name: Test
+
+on: ["push", "pull_request"]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: "3.10"
+
+    - name: Ruff check
+      run: uv run --group lint ruff check .
+
+    - name: Ruff format
+      run: uv run --group lint ruff format --check .
+
+    - name: Mypy
+      run: uv run --group lint mypy -p geth
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install geth
+      uses: ApeWorX/geth-action@v1
+
+    - name: Run core tests
+      run: uv run --group test pytest tests/core
+
+  install-geth:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
+
+    env:
+      GETH_RUN_INSTALL_TESTS: enabled
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Setup Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: "1.22.4"
+
+    - name: Setup uv
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Run installation tests
+      run: uv run --group test pytest -s tests/installation

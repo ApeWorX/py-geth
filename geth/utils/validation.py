@@ -67,9 +67,9 @@ def validate_geth_kwargs(geth_kwargs: GethKwargsTypedDict) -> None:
     try:
         GethKwargs(**geth_kwargs)
     except ValidationError as e:
-        raise PyGethValueError(f"geth_kwargs validation failed: {e}")
+        raise PyGethValueError(f"geth_kwargs validation failed: {e}") from e
     except TypeError as e:
-        raise PyGethValueError(f"error while validating geth_kwargs: {e}")
+        raise PyGethValueError(f"error while validating geth_kwargs: {e}") from e
 
 
 class GenesisDataConfig(BaseModel):
@@ -145,9 +145,9 @@ def validate_genesis_data(genesis_data: GenesisDataTypedDict) -> None:
     try:
         GenesisData(**genesis_data)
     except ValidationError as e:
-        raise PyGethValueError(f"genesis_data validation failed: {e}")
+        raise PyGethValueError(f"genesis_data validation failed: {e}") from e
     except TypeError as e:
-        raise PyGethValueError(f"error while validating genesis_data: {e}")
+        raise PyGethValueError(f"error while validating genesis_data: {e}") from e
 
     """
     Validates the genesis data config field
@@ -157,8 +157,10 @@ def validate_genesis_data(genesis_data: GenesisDataTypedDict) -> None:
         try:
             GenesisDataConfig(**genesis_data_config)
         except ValidationError as e:
-            raise PyGethValueError(f"genesis_data config field validation failed: {e}")
+            raise PyGethValueError(
+                f"genesis_data config field validation failed: {e}"
+            ) from e
         except TypeError as e:
             raise PyGethValueError(
                 f"error while validating genesis_data config field: {e}"
-            )
+            ) from e

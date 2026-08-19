@@ -1,5 +1,6 @@
-import pytest
 import os
+
+import pytest
 
 from geth.chain import (
     is_sepolia_chain,

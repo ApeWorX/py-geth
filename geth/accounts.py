@@ -33,8 +33,8 @@ def get_accounts(
     """
     Returns all geth accounts as tuple of hex encoded strings
 
-    >>> get_accounts(data_dir='some/data/dir')
-    ... ('0x...', '0x...')
+    >>> get_accounts(data_dir="some/data/dir")
+    ... ("0x...", "0x...")
     """
     validate_geth_kwargs(geth_kwargs)
 

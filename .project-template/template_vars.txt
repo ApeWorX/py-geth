@@ -1,6 +1,0 @@
-geth
-py-geth
-py-geth
-<RTD_NAME>
-PyGeth
-Python wrapper around running `geth` as a subprocess

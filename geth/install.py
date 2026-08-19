@@ -1,6 +1,7 @@
 """
 Install geth
 """
+
 from __future__ import (
     annotations,
 )
@@ -242,7 +243,7 @@ def download_source_code_release(identifier: str) -> None:
     except (HTTPError, Timeout, ConnectionError) as e:
         raise PyGethException(
             f"An error occurred while downloading from {download_uri}: {e}"
-        )
+        ) from e
 
 
 def extract_source_code_release(identifier: str) -> None:
@@ -295,8 +296,7 @@ def build_from_source_code(identifier: str) -> None:
     built_executable_path = get_built_executable_path(identifier)
     if not os.path.exists(built_executable_path):
         raise PyGethOSError(
-            "Built executable not found in expected location: "
-            f"{built_executable_path}"
+            f"Built executable not found in expected location: {built_executable_path}"
         )
     print(f"Making built binary executable: chmod +x {built_executable_path}")
     chmod_plus_x(built_executable_path)

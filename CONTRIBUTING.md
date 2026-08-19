@@ -3,33 +3,38 @@
 To start development for `py-geth` you should begin by cloning the repo.
 
 ```bash
-$ git clone git@github.com:ethereum/py-geth.git
+$ git clone git@github.com:ApeWorX/py-geth.git
 ```
 
 # Cute Animal Pictures
 
-All pull requests need to have a cute animal picture.  This is a very important
+All pull requests need to have a cute animal picture. This is a very important
 part of the development process.
 
 # Pull Requests
 
-In general, pull requests are welcome.  Please try to adhere to the following.
+In general, pull requests are welcome. Please try to adhere to the following.
 
-- code should conform to PEP8 and as well as the linting done by flake8
+- code should conform to PEP8 and pass ruff linting/formatting
 - include tests.
 - include any relevant documentation updates.
-- update the CHANGELOG to include a brief description of what was done.
+- include release notes in the GitHub release when publishing.
 
-It's a good idea to make pull requests early on.  A pull request represents the
+It's a good idea to make pull requests early on. A pull request represents the
 start of a discussion, and doesn't necessarily need to be the final, finished
 submission.
 
 GitHub's documentation for working on pull requests is [available here][pull-requests].
 
-Always run the tests before submitting pull requests, and ideally run `tox` in
-order to check that your modifications don't break anything.
+Always run linting and tests before submitting pull requests:
 
-Once you've made a pull request take a look at the travis build status in the
+```bash
+uv run --group lint ruff check .
+uv run --group lint ruff format --check .
+uv run --group test pytest tests/core
+```
+
+Once you've made a pull request take a look at the GitHub Actions status in the
 GitHub interface and make sure the tests are running as you'd expect.
 
 [pull-requests]: https://help.github.com/articles/about-pull-requests

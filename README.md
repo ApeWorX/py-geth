@@ -109,7 +109,11 @@ True
 
 ## Installing specific versions of `geth`
 
-> This feature is experimental and subject to breaking changes.
+> This feature is experimental, best-effort, and subject to breaking changes.
+> It is a convenience for building tagged geth source archives and is not covered
+> by integration testing. Historical tags may become incompatible with current Go
+> toolchains. Prefer geth's official downloads or another supported installation
+> method for normal use.
 
 Versions of `geth` dating back to v1.14.0 can be installed using `py-geth`.
 See [install.py](https://github.com/ApeWorX/py-geth/blob/main/geth/install.py) for

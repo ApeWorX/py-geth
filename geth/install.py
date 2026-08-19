@@ -286,10 +286,16 @@ def build_from_source_code(identifier: str) -> None:
     source_code_path = get_source_code_path(identifier)
 
     with chdir(source_code_path):
-        make_command = ["make", "geth"]
+        install_command = [
+            get_go_executable_path(),
+            "run",
+            "build/ci.go",
+            "install",
+            "./cmd/geth",
+        ]
 
         check_subprocess_call(
-            make_command,
+            install_command,
             message="Building `geth` binary",
         )
 

@@ -1,3 +1,5 @@
+import sys
+
 import pytest
 from flaky import (
     flaky,
@@ -8,6 +10,10 @@ from geth import (
 )
 from geth.utils.timeout import (
     Timeout,
+)
+
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32", reason="Geth IPC uses named pipes on Windows"
 )
 
 

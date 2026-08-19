@@ -16,11 +16,17 @@ class LoggedMainnetGethProcess(LoggingMixin, MainnetGethProcess):
 
 
 def test_live_chain_with_no_overrides():
-    geth = LoggedMainnetGethProcess(geth_kwargs={"port": get_open_port()})
+    geth = LoggedMainnetGethProcess(
+        geth_kwargs={
+            "port": get_open_port(),
+            "rpc_enabled": True,
+            "rpc_port": get_open_port(),
+        }
+    )
 
     geth.start()
 
-    geth.wait_for_ipc(180)
+    geth.wait_for_rpc(180)
 
     assert geth.is_running
     assert geth.is_alive

@@ -12,6 +12,7 @@ from collections.abc import (
 import contextlib
 import functools
 import os
+import shutil
 import stat
 import subprocess
 import sys
@@ -82,21 +83,7 @@ def get_platform() -> str:
 
 
 def is_executable_available(program: str) -> bool:
-    def is_exe(fpath: str) -> bool:
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
-
-    fpath = os.path.dirname(program)
-    if fpath:
-        if is_exe(program):
-            return True
-    else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return True
-
-    return False
+    return shutil.which(program) is not None
 
 
 def ensure_path_exists(dir_path: str) -> bool:
@@ -206,7 +193,7 @@ def get_built_executable_path(identifier: str) -> str:
     return os.path.join(
         build_path,
         "bin",
-        "geth",
+        "geth.exe" if get_platform() == WINDOWS else "geth",
     )
 
 
@@ -215,7 +202,7 @@ def get_executable_path(identifier: str) -> str:
     return os.path.join(
         base_install_path,
         "bin",
-        "geth",
+        "geth.exe" if get_platform() == WINDOWS else "geth",
     )
 
 
@@ -304,8 +291,9 @@ def build_from_source_code(identifier: str) -> None:
         raise PyGethOSError(
             f"Built executable not found in expected location: {built_executable_path}"
         )
-    print(f"Making built binary executable: chmod +x {built_executable_path}")
-    chmod_plus_x(built_executable_path)
+    if get_platform() != WINDOWS:
+        print(f"Making built binary executable: chmod +x {built_executable_path}")
+        chmod_plus_x(built_executable_path)
 
     executable_path = get_executable_path(identifier)
     ensure_parent_dir_exists(executable_path)
@@ -316,8 +304,11 @@ def build_from_source_code(identifier: str) -> None:
             raise PyGethOSError(
                 f"Non-symlink file already present at `{executable_path}`"
             )
-    os.symlink(built_executable_path, executable_path)
-    chmod_plus_x(executable_path)
+    if get_platform() == WINDOWS:
+        shutil.copy2(built_executable_path, executable_path)
+    else:
+        os.symlink(built_executable_path, executable_path)
+        chmod_plus_x(executable_path)
 
 
 def install_from_source_code_release(identifier: str) -> None:
@@ -369,6 +360,21 @@ INSTALL_FUNCTIONS = {
         V1_17_2: install_v1_17_2,
     },
     OSX: {
+        V1_16_0: install_v1_16_0,
+        V1_16_1: install_v1_16_1,
+        V1_16_2: install_v1_16_2,
+        V1_16_3: install_v1_16_3,
+        V1_16_4: install_v1_16_4,
+        V1_16_5: install_v1_16_5,
+        V1_16_6: install_v1_16_6,
+        V1_16_7: install_v1_16_7,
+        V1_16_8: install_v1_16_8,
+        V1_16_9: install_v1_16_9,
+        V1_17_0: install_v1_17_0,
+        V1_17_1: install_v1_17_1,
+        V1_17_2: install_v1_17_2,
+    },
+    WINDOWS: {
         V1_16_0: install_v1_16_0,
         V1_16_1: install_v1_16_1,
         V1_16_2: install_v1_16_2,

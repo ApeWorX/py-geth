@@ -29,10 +29,11 @@ jobs:
       run: uv run --group lint mypy -p geth
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
@@ -52,10 +53,11 @@ jobs:
       run: uv run --group test pytest tests/core
 
   install-geth:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     env:
@@ -69,7 +71,7 @@ jobs:
     - name: Setup Go
       uses: actions/setup-go@v6
       with:
-        go-version: "1.22.4"
+        go-version: "1.24.x"
 
     - name: Setup uv
       uses: astral-sh/setup-uv@v7

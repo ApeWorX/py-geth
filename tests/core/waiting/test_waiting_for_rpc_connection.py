@@ -9,26 +9,33 @@ from geth import (
 from geth.exceptions import (
     PyGethGethError,
 )
+from geth.mixins import (
+    LoggingMixin,
+)
 from geth.utils.timeout import (
     Timeout,
 )
 
 
+class LoggedDevGethProcess(LoggingMixin, DevGethProcess):
+    pass
+
+
 def test_waiting_for_rpc_connection(base_dir):
-    with DevGethProcess("testing", base_dir=base_dir) as geth:
+    with LoggedDevGethProcess("testing", base_dir=base_dir) as geth:
         assert geth.is_running
         geth.wait_for_rpc(timeout=20)
 
 
 @flaky(max_runs=3)
 def test_timeout_waiting_for_rpc_connection(base_dir):
-    with DevGethProcess("testing", base_dir=base_dir) as geth:
+    with LoggedDevGethProcess("testing", base_dir=base_dir) as geth:
         with pytest.raises(Timeout):
             geth.wait_for_rpc(timeout=0.1)
 
 
 def test_waiting_for_rpc_fails_when_geth_exits(monkeypatch, base_dir):
-    geth = DevGethProcess("testing", base_dir=base_dir)
+    geth = LoggedDevGethProcess("testing", base_dir=base_dir)
     geth.start()
     geth.proc.terminate()
     geth.proc.wait()

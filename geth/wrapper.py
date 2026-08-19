@@ -72,31 +72,47 @@ def construct_test_chain_kwargs(
     if sys.platform == "win32":
         overrides.setdefault("ipc_disable", True)
 
+    allocated_ports = {
+        str(port)
+        for port in (
+            overrides.get("port"),
+            overrides.get("ws_port"),
+            overrides.get("rpc_port"),
+        )
+        if port is not None
+    }
+
+    def allocate_port(default: int) -> str:
+        default_port = str(default)
+        if default_port not in allocated_ports and is_port_open(default):
+            port = default_port
+        else:
+            port = get_open_port()
+            while port in allocated_ports:
+                port = get_open_port()
+
+        allocated_ports.add(port)
+        return port
+
     overrides.setdefault("dev_mode", True)
     overrides.setdefault("password", DEFAULT_PASSWORD_PATH)
     overrides.setdefault("no_discover", True)
     overrides.setdefault("max_peers", "0")
     overrides.setdefault("network_id", "1234")
 
-    if is_port_open(30303):
-        overrides.setdefault("port", "30303")
-    else:
-        overrides.setdefault("port", get_open_port())
+    if "port" not in overrides:
+        overrides["port"] = allocate_port(30303)
 
     overrides.setdefault("ws_enabled", True)
     overrides.setdefault("ws_api", ALL_APIS)
 
-    if is_port_open(8546):
-        overrides.setdefault("ws_port", "8546")
-    else:
-        overrides.setdefault("ws_port", get_open_port())
+    if "ws_port" not in overrides:
+        overrides["ws_port"] = allocate_port(8546)
 
     overrides.setdefault("rpc_enabled", True)
     overrides.setdefault("rpc_api", ALL_APIS)
-    if is_port_open(8545):
-        overrides.setdefault("rpc_port", "8545")
-    else:
-        overrides.setdefault("rpc_port", get_open_port())
+    if "rpc_port" not in overrides:
+        overrides["rpc_port"] = allocate_port(8545)
 
     if not overrides.get("ipc_disable") and "ipc_path" not in overrides:
         # try to use a `geth.ipc` within the provided data_dir if the path is

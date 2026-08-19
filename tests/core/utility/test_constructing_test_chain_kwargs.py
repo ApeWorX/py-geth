@@ -49,3 +49,17 @@ def test_windows_test_chains_disable_ipc(monkeypatch, tmp_path):
 
     assert chain_kwargs["ipc_disable"] is True
     assert "ipc_path" not in chain_kwargs
+
+
+def test_generated_ports_are_unique(monkeypatch):
+    generated_ports = iter(("40000", "40000", "40001", "40001", "40002"))
+    monkeypatch.setattr("geth.wrapper.is_port_open", lambda port: False)
+    monkeypatch.setattr("geth.wrapper.get_open_port", lambda: next(generated_ports))
+
+    chain_kwargs = construct_test_chain_kwargs()
+
+    assert {
+        chain_kwargs["port"],
+        chain_kwargs["ws_port"],
+        chain_kwargs["rpc_port"],
+    } == {"40000", "40001", "40002"}

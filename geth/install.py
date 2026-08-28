@@ -17,6 +17,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 from typing import (
     Any,
 )
@@ -139,6 +140,10 @@ def is_go_available() -> bool:
     return is_executable_available(get_go_executable_path())
 
 
+def is_git_available() -> bool:
+    return is_executable_available("git")
+
+
 #
 #  Installation filesystem path utilities
 #
@@ -212,6 +217,100 @@ def get_executable_path(identifier: str) -> str:
 DOWNLOAD_SOURCE_CODE_URI_TEMPLATE = (
     "https://github.com/ethereum/go-ethereum/archive/{0}.tar.gz"
 )
+SOURCE_CODE_GIT_REPOSITORY = "https://github.com/ethereum/go-ethereum.git"
+
+
+def _source_checkout_matches_identifier(source_path: str, identifier: str) -> bool:
+    if not os.path.isdir(os.path.join(source_path, ".git")):
+        return False
+
+    try:
+        head = subprocess.check_output(
+            ["git", "rev-parse", "--verify", "HEAD"],
+            cwd=source_path,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        tag = subprocess.check_output(
+            ["git", "rev-parse", "--verify", f"refs/tags/{identifier}^{{commit}}"],
+            cwd=source_path,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+    except (OSError, subprocess.CalledProcessError):
+        return False
+
+    return head == tag
+
+
+def checkout_source_code_release(identifier: str) -> None:
+    """Shallow-clone *identifier* into the source path used by the builder."""
+    if not identifier:
+        raise PyGethValueError("The geth release identifier must not be empty")
+    if not is_git_available():
+        raise PyGethOSError(
+            "The `git` executable was not found but is required to install geth "
+            "from source."
+        )
+
+    source_path = get_source_code_path(identifier)
+    if _source_checkout_matches_identifier(source_path, identifier):
+        print(f"Using existing source checkout: {source_path}")
+        return
+
+    extract_path = get_source_code_extract_path(identifier)
+    ensure_path_exists(extract_path)
+    staging_path = tempfile.mkdtemp(prefix=".geth-checkout-", dir=extract_path)
+    staged_checkout = os.path.join(staging_path, "checkout")
+    previous_source = os.path.join(staging_path, "previous-source")
+
+    try:
+        check_subprocess_call(
+            [
+                "git",
+                # Git for Windows otherwise uses the legacy MAX_PATH limit
+                # while checking out go-ethereum's deeply nested test files.
+                "-c",
+                "core.longpaths=true",
+                "clone",
+                # Persist this for subsequent Git commands in this checkout.
+                "--config",
+                "core.longpaths=true",
+                "--depth",
+                "1",
+                "--branch",
+                identifier,
+                "--single-branch",
+                SOURCE_CODE_GIT_REPOSITORY,
+                staged_checkout,
+            ],
+            message=f"Checking out geth source release {identifier}",
+        )
+        if not _source_checkout_matches_identifier(staged_checkout, identifier):
+            raise PyGethException(
+                f"Git checkout did not resolve to requested geth release {identifier}"
+            )
+
+        if os.path.lexists(source_path):
+            os.replace(source_path, previous_source)
+        try:
+            os.replace(staged_checkout, source_path)
+        except OSError:
+            if os.path.lexists(previous_source):
+                os.replace(previous_source, source_path)
+            raise
+    except subprocess.CalledProcessError as err:
+        raise PyGethException(
+            f"Unable to check out geth release {identifier!r} from "
+            f"{SOURCE_CODE_GIT_REPOSITORY}: {err}"
+        ) from err
+    except OSError as err:
+        raise PyGethOSError(
+            f"Unable to prepare the source checkout for geth release "
+            f"{identifier!r}: {err}"
+        ) from err
+    finally:
+        shutil.rmtree(staging_path, ignore_errors=True)
 
 
 def download_source_code_release(identifier: str) -> None:
@@ -273,6 +372,11 @@ def build_from_source_code(identifier: str) -> None:
     source_code_path = get_source_code_path(identifier)
 
     with chdir(source_code_path):
+        # go-ethereum reads CI-specific commit variables when CI is enabled.
+        # Those variables describe py-geth's checkout, not this go-ethereum
+        # checkout, so force its build tooling to derive metadata from .git.
+        build_environment = os.environ.copy()
+        build_environment["CI"] = "false"
         install_command = [
             get_go_executable_path(),
             "run",
@@ -281,10 +385,20 @@ def build_from_source_code(identifier: str) -> None:
             "./cmd/geth",
         ]
 
-        check_subprocess_call(
-            install_command,
-            message="Building `geth` binary",
-        )
+        try:
+            check_subprocess_output(
+                install_command,
+                message="Building `geth` binary",
+                env=build_environment,
+            )
+        except subprocess.CalledProcessError as err:
+            output = err.output
+            if isinstance(output, bytes):
+                output = output.decode(errors="replace")
+            raise PyGethException(
+                "Unable to build geth from source. Build output:\n"
+                f"{output or '(no build output was produced)'}"
+            ) from err
 
     built_executable_path = get_built_executable_path(identifier)
     if not os.path.exists(built_executable_path):
@@ -312,8 +426,7 @@ def build_from_source_code(identifier: str) -> None:
 
 
 def install_from_source_code_release(identifier: str) -> None:
-    download_source_code_release(identifier)
-    extract_source_code_release(identifier)
+    checkout_source_code_release(identifier)
     build_from_source_code(identifier)
 
     executable_path = get_executable_path(identifier)

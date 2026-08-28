@@ -268,7 +268,14 @@ def checkout_source_code_release(identifier: str) -> None:
         check_subprocess_call(
             [
                 "git",
+                # Git for Windows otherwise uses the legacy MAX_PATH limit
+                # while checking out go-ethereum's deeply nested test files.
+                "-c",
+                "core.longpaths=true",
                 "clone",
+                # Persist this for subsequent Git commands in this checkout.
+                "--config",
+                "core.longpaths=true",
                 "--depth",
                 "1",
                 "--branch",
@@ -378,11 +385,20 @@ def build_from_source_code(identifier: str) -> None:
             "./cmd/geth",
         ]
 
-        check_subprocess_call(
-            install_command,
-            message="Building `geth` binary",
-            env=build_environment,
-        )
+        try:
+            check_subprocess_output(
+                install_command,
+                message="Building `geth` binary",
+                env=build_environment,
+            )
+        except subprocess.CalledProcessError as err:
+            output = err.output
+            if isinstance(output, bytes):
+                output = output.decode(errors="replace")
+            raise PyGethException(
+                "Unable to build geth from source. Build output:\n"
+                f"{output or '(no build output was produced)'}"
+            ) from err
 
     built_executable_path = get_built_executable_path(identifier)
     if not os.path.exists(built_executable_path):

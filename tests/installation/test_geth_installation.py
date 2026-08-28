@@ -1,5 +1,6 @@
 import subprocess
 import sys
+import tempfile
 
 import pytest
 
@@ -67,6 +68,14 @@ def test_checkout_source_code_release_is_shallow_exact_and_repeatable(
     monkeypatch.setattr(
         install_module, "SOURCE_CODE_GIT_REPOSITORY", repository.as_uri()
     )
+    original_check_call = install_module.check_subprocess_call
+    clone_commands = []
+
+    def capture_clone_command(command, **kwargs):
+        clone_commands.append(command)
+        return original_check_call(command, **kwargs)
+
+    monkeypatch.setattr(install_module, "check_subprocess_call", capture_clone_command)
 
     install_module.checkout_source_code_release("v1.16.7")
     source_path = install_module.get_source_code_path("v1.16.7")
@@ -83,6 +92,27 @@ def test_checkout_source_code_release_is_shallow_exact_and_repeatable(
             ["git", "rev-list", "--count", "HEAD"], cwd=source_path, text=True
         ).strip()
         == "1"
+    )
+    assert clone_commands[0][0:12] == [
+        "git",
+        "-c",
+        "core.longpaths=true",
+        "clone",
+        "--config",
+        "core.longpaths=true",
+        "--depth",
+        "1",
+        "--branch",
+        "v1.16.7",
+        "--single-branch",
+        repository.as_uri(),
+    ]
+    assert clone_commands[0][-1].endswith("checkout")
+    assert (
+        subprocess.check_output(
+            ["git", "config", "--get", "core.longpaths"], cwd=source_path, text=True
+        ).strip()
+        == "true"
     )
 
     install_module.checkout_source_code_release("v1.16.7")
@@ -111,36 +141,39 @@ def test_checkout_failure_does_not_publish_partial_source(monkeypatch, tmp_path)
     )
 
 
-def test_install_geth_from_github_source(monkeypatch, tmp_path):
+def test_install_geth_from_github_source(monkeypatch):
     identifier = "v1.16.7"
-    install_root = tmp_path / "py-geth installation with spaces"
-    monkeypatch.setenv("GETH_BASE_INSTALL_PATH", str(install_root))
+    with tempfile.TemporaryDirectory(prefix="py-geth ") as temporary_directory:
+        install_root = install_module.os.path.join(
+            temporary_directory, "installation with spaces"
+        )
+        monkeypatch.setenv("GETH_BASE_INSTALL_PATH", install_root)
 
-    subprocess.run(
-        [sys.executable, "-m", "geth.install", identifier],
-        check=True,
-        cwd=install_module.os.path.dirname(
-            install_module.os.path.dirname(install_module.__file__)
-        ),
-        env=install_module.os.environ.copy(),
-    )
+        subprocess.run(
+            [sys.executable, "-m", "geth.install", identifier],
+            check=True,
+            cwd=install_module.os.path.dirname(
+                install_module.os.path.dirname(install_module.__file__)
+            ),
+            env=install_module.os.environ.copy(),
+        )
 
-    source = install_module.get_source_code_path(identifier)
-    executable = install_module.get_executable_path(identifier)
-    assert install_module.os.path.isdir(install_module.os.path.join(source, ".git"))
-    assert (
-        subprocess.check_output(
-            ["git", "rev-parse", "--verify", "HEAD"], cwd=source, text=True
-        ).strip()
-        == subprocess.check_output(
-            ["git", "rev-parse", "--verify", f"refs/tags/{identifier}^{{commit}}"],
-            cwd=source,
-            text=True,
-        ).strip()
-    )
+        source = install_module.get_source_code_path(identifier)
+        executable = install_module.get_executable_path(identifier)
+        assert install_module.os.path.isdir(install_module.os.path.join(source, ".git"))
+        assert (
+            subprocess.check_output(
+                ["git", "rev-parse", "--verify", "HEAD"], cwd=source, text=True
+            ).strip()
+            == subprocess.check_output(
+                ["git", "rev-parse", "--verify", f"refs/tags/{identifier}^{{commit}}"],
+                cwd=source,
+                text=True,
+            ).strip()
+        )
 
-    version_output = subprocess.check_output([executable, "version"], text=True)
-    assert "Version: 1.16.7" in version_output
+        version_output = subprocess.check_output([executable, "version"], text=True)
+        assert "Version: 1.16.7" in version_output
 
 
 @pytest.mark.parametrize("platform", ("linux", "win32"))
@@ -172,7 +205,7 @@ def test_build_from_source_code(monkeypatch, tmp_path, platform):
     monkeypatch.setattr(
         install_module, "get_executable_path", lambda identifier: str(executable)
     )
-    monkeypatch.setattr(install_module, "check_subprocess_call", build_geth)
+    monkeypatch.setattr(install_module, "check_subprocess_output", build_geth)
 
     install_module.build_from_source_code("v1.17.2")
 
@@ -189,6 +222,23 @@ def test_build_from_source_code(monkeypatch, tmp_path, platform):
     assert kwargs["env"]["CI"] == "false"
     assert executable.read_bytes() == b"geth"
     assert executable.is_symlink() is (platform != "win32")
+
+
+def test_build_failure_includes_compiler_output(monkeypatch, tmp_path):
+    source_path = tmp_path / "source"
+    source_path.mkdir()
+    monkeypatch.setattr(install_module, "is_go_available", lambda: True)
+    monkeypatch.setattr(
+        install_module, "get_source_code_path", lambda identifier: str(source_path)
+    )
+
+    def fail_build(command, **kwargs):
+        raise subprocess.CalledProcessError(1, command, output=b"compiler error")
+
+    monkeypatch.setattr(install_module, "check_subprocess_output", fail_build)
+
+    with pytest.raises(PyGethException, match="compiler error"):
+        install_module.build_from_source_code("v1.16.7")
 
 
 def test_build_requires_go(monkeypatch):

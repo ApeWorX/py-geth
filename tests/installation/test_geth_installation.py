@@ -39,6 +39,15 @@ def test_installation_paths_use_platform_executable_name(
     )
 
 
+def test_v1_17_9_is_registered_for_all_platforms():
+    for platform in (
+        install_module.LINUX,
+        install_module.OSX,
+        install_module.WINDOWS,
+    ):
+        assert "v1.17.9" in install_module.INSTALL_FUNCTIONS[platform]
+
+
 def test_go_binary_override(monkeypatch):
     monkeypatch.setenv("GO_BINARY", "/custom/go")
 
